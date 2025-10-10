@@ -1,0 +1,17 @@
+
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Configuración de IDEs
+.vscode/
+.idea/
+
+# Archivos temporales del sistema
+.DS_Store
+Thumbs.db
+
+# Archivos de logs o caché
+*.log
+*.sqlite3
