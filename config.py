@@ -12,7 +12,7 @@ CUERPO_HTML = """
 <p>Hola buenas tardes ,<br><br>
 Te envío el último archivo descargado automáticamente.<br><br>
 Saludos,<br>
-Automatización Python 🐍
+Automatización Python 
 </p>
 """
 
