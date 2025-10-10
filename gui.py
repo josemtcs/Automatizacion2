@@ -70,9 +70,9 @@ subtitulo = tk.Label(
 )
 subtitulo.pack()
 
-# ----------------------------------------
+
 # BOTONES DE ACCIÓN
-# ----------------------------------------
+
 frame_botones = tk.Frame(ventana, bg="#f0f2f5")
 frame_botones.pack(pady=30)
 
@@ -112,9 +112,8 @@ btn_salir = tk.Button(
 )
 btn_salir.pack(pady=20)
 
-# ----------------------------------------
 # LABEL DE ESTADO
-# ----------------------------------------
+
 lbl_estado = tk.Label(
     ventana,
     text="Estado: Esperando acción...",
