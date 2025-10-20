@@ -8,15 +8,49 @@ from config import CARPETA_DESCARGAS
 
 
 def ejecutar_enviar_correo():
-    confirmar = messagebox.askyesno("Confirmar envío", "¿Deseas enviar el correo con el último archivo descargado?")
-    if not confirmar:
-        return
-
     try:
-        enviar_correo()
-        messagebox.showinfo("Éxito", "✅ Correo enviado correctamente.")
+        archivo = obtener_ultimo_archivo_descargado(CARPETA_DESCARGAS)
+        if not archivo:
+            messagebox.showerror("Error", "❌ No se encontró ningún archivo para adjuntar.")
+            return
+
+        lbl_estado.config(text="📨 Preparando correo... por favor espera.")
+        ventana.update_idletasks()
+
+        # Primera fase: preparar
+        driver = enviar_correo(preparar=True, enviar=False)
+
+        if not driver:
+            messagebox.showerror("Error", "❌ No se pudo preparar el correo.")
+            lbl_estado.config(text="❌ Error al preparar el correo.")
+            return
+
+        # Confirmar envío
+        confirmar = messagebox.askyesno(
+            "Confirmar envío",
+            f"¿Deseas enviar el correo con el siguiente archivo?\n\n📎 {archivo}",
+        )
+
+        if confirmar:
+            lbl_estado.config(text="🚀 Enviando correo... por favor espera.")
+            ventana.update_idletasks()
+
+            resultado = enviar_correo(preparar=False, enviar=True, driver=driver)
+
+            if resultado:
+                messagebox.showinfo("Éxito", "✅ Correo enviado correctamente.")
+                lbl_estado.config(text=f"✅ Correo enviado con el archivo:\n{archivo}")
+            else:
+                messagebox.showerror("Error", "❌ Fallo al enviar el correo.")
+                lbl_estado.config(text="❌ Fallo al enviar el correo.")
+        else:
+            driver.quit()
+            messagebox.showinfo("Cancelado", "🚫 Envío cancelado por el usuario.")
+            lbl_estado.config(text="🚫 Envío cancelado por el usuario.")
+
     except Exception as e:
-        messagebox.showerror("Error", f"Ocurrió un error al enviar el correo:\n{e}")
+        messagebox.showerror("Error", f"⚠️ Error al enviar el correo:\n{e}")
+        lbl_estado.config(text=f"❌ Error durante el envío: {e}")
 
 def mostrar_ultimo_archivo():
     try:

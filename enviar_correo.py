@@ -1,140 +1,126 @@
 import os
 import time
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
+import pyautogui
+import ssl
+from seleniumbase import Driver
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from webdriver_manager.chrome import ChromeDriverManager
-from config import RUTA_PERFIL, NOMBRE_PERFIL, OUTLOOK_URL, DESTINATARIO, ASUNTO, CUERPO_HTML, CARPETA_DESCARGAS,CC
-import pyautogui
+from config import *
 from utils import obtener_ultimo_archivo_descargado
-import ssl
+
 
 ssl._create_default_https_context = ssl._create_unverified_context
 
 
-def enviar_correo():
-    print("🔵 Iniciando Outlook Web...")
-
-    chrome_options = Options()
-    chrome_options.add_argument(f"user-data-dir={RUTA_PERFIL}")       
-    chrome_options.add_argument(f"profile-directory={NOMBRE_PERFIL}") 
-    #chrome_options.add_experimental_option("detach", True)            # No cierra el navegador al finalizar
-    chrome_options.add_argument("--start-maximized")
-
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
-    wait = WebDriverWait(driver, 25)
-
-    driver.get(OUTLOOK_URL)
-    time.sleep(5) 
+def enviar_correo(preparar=True, enviar=False, driver=None):
 
     try:
-        # ---------- Paso 1: Botón "Correo nuevo" ----------
-        nuevo_btn = wait.until(EC.element_to_be_clickable(
-            (By.XPATH, "//button[@aria-label='Correo nuevo' or @aria-label='New mail']")
-        ))
-        nuevo_btn.click()
-        print("✉️ Correo nuevo iniciado...")
 
-        # ---------- Paso 2: Campo “Para” ----------
-        para_input = wait.until(EC.presence_of_element_located(
-            (By.XPATH, "//div[@role='textbox' and (@aria-label='Para' or @aria-label='To')]")
-        ))
-        para_input.click()
-        para_input.send_keys(DESTINATARIO)
-        para_input.send_keys(Keys.TAB)
+        if preparar:
+            print("🔵 Iniciando Outlook Web...")
+            driver = Driver(
+                browser="chrome",
+                uc=True,  
+                headed=True,
+                no_sandbox=True,
+                incognito=False,
+                user_data_dir=RUTA_PERFIL,
+            )
+            driver.uc_open(OUTLOOK_URL)
+            driver.maximize_window()
+            print("🌐 Cargando Outlook Web...")
+            time.sleep(2)
 
-                # ---------- Paso 2: Campo “CC” ----------
-        CC_input = wait.until(EC.presence_of_element_located(
-            (By.XPATH, "//div[@role='textbox' and (@aria-label='CC' or @aria-label='CC')]")
-        ))
-        CC_input.click()
-        CC_input.send_keys(CC)
-        CC_input.send_keys(Keys.ENTER)
-       
-
-        # ---------- Paso 3: Campo “Asunto” ----------
-        asunto_input = wait.until(EC.presence_of_element_located(
-            (By.XPATH, "//input[@type='text' and (@aria-label='Asunto' or @aria-label='Subject')]")
-        ))
-        asunto_input.click()
-        asunto_input.clear()
-        asunto_input.send_keys(ASUNTO)
-
-        # ---------- Paso 4: Campo “Cuerpo del mensaje” ----------
-        cuerpo_input = wait.until(EC.presence_of_element_located(
-            (By.XPATH, "//div[@role='textbox' and (@aria-label='Cuerpo del mensaje' or @aria-label='Message body')]")
-        ))
-        driver.execute_script("arguments[0].innerHTML = arguments[1];", cuerpo_input, CUERPO_HTML)
-        cuerpo_input.click()
-        driver.execute_script("arguments[0].innerHTML = arguments[1];", cuerpo_input, CUERPO_HTML)
-        print("📝 Cuerpo del correo agregado...")
-
-
-
-        # ---------- Paso 5: Adjuntar el último archivo descargado ----------
-        archivo = obtener_ultimo_archivo_descargado(CARPETA_DESCARGAS)
-        print(f"📎 Último archivo a adjuntar: {archivo}")
-
-         # --- Clic en el botón "Adjuntar archivo" ---
+        # Esperar login manual (solo la primera vez)
         
-        adjuntar_btn = wait.until(EC.element_to_be_clickable((By.XPATH,"//button[contains(@aria-label,'Adjuntar archivo') and @data-automation-type='RibbonFlyoutAnchor']"
-        )))
-        driver.execute_script("arguments[0].scrollIntoView(true);", adjuntar_btn)
-        time.sleep(1)
-        adjuntar_btn.click()
-        print("📎 Se hizo clic en el botón 'Adjuntar archivo'.")
 
-        time.sleep(2)
+               # ---------- Paso 1: Nuevo correo ----------
+            driver.click_if_visible("button[aria-label='Correo nuevo'], button[aria-label='New mail']")
+            print("✉️ Correo nuevo iniciado...")
+            time.sleep(1)
 
-        # --- Clic en el botón "Examinar este equipo" ---
-        examinar_btn = wait.until(EC.element_to_be_clickable((By.XPATH,"//button[@name='Examinar este equipo' and @aria-label='Examinar este equipo']")))
-        driver.execute_script("arguments[0].scrollIntoView(true);", examinar_btn)
-        time.sleep(1)
-        examinar_btn.click()
-        print("🗂️ Se hizo clic en 'Examinar este equipo'.")
-
-        time.sleep(3)
-
-        # --- Simular la selección del archivo con pyautogui ---
+            # ---------- Paso 2: Campo “Para” ----------
         
-        pyautogui.write(archivo)
-        pyautogui.press("enter")
-        print("📤 Archivo seleccionado correctamente.")
+            para_input = WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.CSS_SELECTOR, "div[aria-label='Para'][contenteditable='true']")))
         
-        time.sleep(5)
+            para_input.click()
+            time.sleep(1)
+            para_input.send_keys(DESTINATARIO)
+            para_input.send_keys(Keys.ENTER)
+                
 
-        
-        nombre_archivo = os.path.basename(archivo)
+            # ---------- Paso 2.1: Campo “CC” ----------
+            cc_input = WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.CSS_SELECTOR, "div[aria-label='CC'][contenteditable='true']")))
+            cc_input.click()
+            cc_input.send_keys(CC)
+            cc_input.send_keys(Keys.ENTER)
+            cc_input.click()
+            cc_input.send_keys(Keys.ENTER)
+            print("📧 Destinatario y CC agregados...")
 
-        try:
-            wait.until(EC.presence_of_element_located((
-                By.XPATH,
-                f"//div[@title='{nombre_archivo}' or contains(text(), '{nombre_archivo}')]"
-            )))
+            # ---------- Paso 3: Campo “Asunto” ----------
+            asunto_input =  WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.CSS_SELECTOR, "input[aria-label='Asunto']")))
+            asunto_input.click()
+            asunto_input.clear()
+            asunto_input.send_keys(ASUNTO)
+            print("🧾 Asunto agregado...")
+
+            # ---------- Paso 4: Campo “Cuerpo del mensaje” ----------
+            cuerpo_input = driver.find_element("css selector", "div[role='textbox'][aria-label='Cuerpo del mensaje'], div[role='textbox'][aria-label='Message body']")
+            driver.execute_script("arguments[0].innerHTML = arguments[1];", cuerpo_input, CUERPO_HTML)
+            cuerpo_input.click()
+            print("📝 Cuerpo del correo agregado...")
+
+            # ---------- Paso 5: Adjuntar el último archivo descargado ----------
+            archivo = obtener_ultimo_archivo_descargado(CARPETA_DESCARGAS)
+            print(f"📎 Último archivo a adjuntar: {archivo}")
+
+            driver.click_if_visible("button[aria-label*='Adjuntar archivo']")
+            print("📎 Se hizo clic en el botón 'Adjuntar archivo'.")
+            time.sleep(2)
+            
+            driver.click_if_visible("button[name='Examinar este equipo']")
+            print("🗂️ Se hizo clic en 'Examinar este equipo'.")
+            time.sleep(3)
+
+            pyautogui.write(archivo)
+            pyautogui.press("enter")
+            print("📤 Archivo seleccionado correctamente.")
+            time.sleep(5)
+
+            nombre_archivo = os.path.basename(archivo)
             print(f"✅ Archivo '{nombre_archivo}' adjuntado correctamente.")
-        except Exception:
-            print(f"⚠️ No se pudo confirmar visualmente que '{nombre_archivo}' fue adjuntado.")
-      
 
-    # --- Confirmación antes de enviar ---
-        confirmacion = input("\n❓ ¿Deseas enviar el correo ahora? (S/N): ").strip().lower()
-        if confirmacion != "s":
-            print("🚫 Envío cancelado por el usuario.")
-            return
+        # ---------- Confirmar envío ----------
+        
+            print("🕐 Correo preparado, esperando confirmación del usuario...")
+            return driver  # Devolvemos el navegador activo al GUI
 
-            # ---------- Paso 6: Enviar ----------
-        enviar_btn = wait.until(EC.element_to_be_clickable(
-            (By.XPATH, "//button[@aria-label='Enviar' or @aria-label='Send']")
-        ))
-        enviar_btn.click()
-
-        print("✅ Correo enviado correctamente.")
-
+        # ---------- Enviar correo ----------
+        elif enviar and driver is not None:
+            print("🚀 Enviando correo...")
+            boton_enviar = WebDriverWait(driver, 20).until(
+                EC.element_to_be_clickable(
+                    (By.CSS_SELECTOR, "button[aria-label='Enviar'], button[aria-label='Send']")
+                )
+            )
+            boton_enviar.click()
+            print("✅ Correo enviado correctamente.")
+            time.sleep(3)
+            driver.quit()
+            return True
+        else:
+            print("❌ Parámetros inválidos para enviar_correo.")
+            return False
+    except Exception as e:
+        print(f"⚠️ Error durante el envío: {e}")
+        try:
+            driver.quit()
+        except:
+            pass
+        return False
 
     finally:
         print("Proceso finalizado ✅")
-        

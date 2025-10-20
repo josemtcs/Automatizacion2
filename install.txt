@@ -1,0 +1,5 @@
+pip install pyautogui 
+pip install selenium 
+pip install pandas openpyxl
+pip install msal pandas openpyxl
+pip install seleniumbase
